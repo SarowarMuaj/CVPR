@@ -1,0 +1,76 @@
+import numpy as np
+
+# Input and output (XOR dataset)
+x = np.array([[0,0],[0,1],[1,0],[1,1]])
+y = np.array([[0],[1],[1],[0]])
+
+class NN(object):
+    def __init__(self):
+        # Define layers
+        self.inputLayerNeurons  = 2
+        self.hiddenLayer1Neurons = 5
+        self.hiddenLayer2Neurons = 4
+        self.outputLayerNeurons = 1
+
+        # Initialize weights
+        self.W_H1 = np.random.randn(self.inputLayerNeurons, self.hiddenLayer1Neurons)
+        self.W_H2 = np.random.randn(self.hiddenLayer1Neurons, self.hiddenLayer2Neurons)
+        self.W_O  = np.random.randn(self.hiddenLayer2Neurons, self.outputLayerNeurons)
+
+        self.lr = 0.1  # learning rate
+
+    # Sigmoid + derivative
+    def sigmoid(self, x, deriv=False):
+        if deriv:
+            return x * (1 - x)
+        else:
+            return 1 / (1 + np.exp(-x))
+
+    # Forward propagation
+    def feed_forward(self, X):
+        self.hidden_input1 = np.dot(X, self.W_H1)
+        self.hidden_output1 = self.sigmoid(self.hidden_input1)
+
+        self.hidden_input2 = np.dot(self.hidden_output1, self.W_H2)
+        self.hidden_output2 = self.sigmoid(self.hidden_input2)
+
+        self.output_input = np.dot(self.hidden_output2, self.W_O)
+        self.output = self.sigmoid(self.output_input)
+        return self.output
+
+    # Backpropagation
+    def backprop(self, X, Y, output):
+        # Output layer
+        output_error = Y - output
+        output_delta = output_error * self.sigmoid(output, deriv=True)
+
+        # Hidden layer 2
+        hidden2_error = np.dot(output_delta, self.W_O.T)
+        hidden2_delta = hidden2_error * self.sigmoid(self.hidden_output2, deriv=True)
+
+        # Hidden layer 1
+        hidden1_error = np.dot(hidden2_delta, self.W_H2.T)
+        hidden1_delta = hidden1_error * self.sigmoid(self.hidden_output1, deriv=True)
+
+        # Update weights
+        self.W_O  += np.dot(self.hidden_output2.T, output_delta) * self.lr
+        self.W_H2 += np.dot(self.hidden_output1.T, hidden2_delta) * self.lr
+        self.W_H1 += np.dot(X.T, hidden1_delta) * self.lr
+
+    # Training function
+    def train(self, X, Y):
+        output = self.feed_forward(X)
+        self.backprop(X, Y, output)
+
+
+# Create object and train
+obj = NN()
+for i in range(10000):
+    obj.train(x, y)
+    if i % 1000 == 0:
+        loss = np.mean(np.square(y - obj.feed_forward(x)))
+        print(f"Epoch {i}  Loss: {loss:.6f}")
+
+# Final output
+print("\nFinal Predictions:")
+print(obj.feed_forward(x))
